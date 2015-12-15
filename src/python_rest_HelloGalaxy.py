@@ -121,6 +121,9 @@ def doEverything():
     output.append( "# 1.1 Create Collection")
     data = json.dumps({"name": collectionName})
     reply = requests.post(url, data)
+    # Note: the cookie holds our session id. In order to reuse the same listener session 
+    # on subsequent REST requests, we must set this cookie as part of subsequent requests. 
+    cookies = reply.cookies  
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Created collection")
@@ -128,7 +131,7 @@ def doEverything():
         printError(output, "Unable to create collection", reply)
          
     data = json.dumps({"name": joinCollectionName})
-    reply = requests.post(url, data)
+    reply = requests.post(url, data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Created collection")
@@ -139,7 +142,7 @@ def doEverything():
     data = json.dumps({"create" : codeTableName, "columns":[{"name":"countryCode","type":"int"},
                                                                         {"name": "countryName", "type": "varchar(50)"}]})
      
-    reply = requests.get(url + "/$cmd", data)
+    reply = requests.get(url + "/$cmd", data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Created Table: " + codeTableName)
@@ -152,7 +155,7 @@ def doEverything():
                                                                {"name": "latitude", "type": "decimal(8,4)"}, 
                                                                {"name": "countryCode", "type": "int"}]})
      
-    reply = requests.get(url + "/$cmd", data)
+    reply = requests.get(url + "/$cmd", data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Created Table: " + cityTableName)
@@ -162,14 +165,14 @@ def doEverything():
     output.append("# 2 Inserts")
     output.append( "# 2.1 Insert a single document to a collection")
     data = json.dumps(kansasCity.toJSON())
-    reply = requests.post(url + "/" + collectionName, data)
+    reply = requests.post(url + "/" + collectionName, data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " document")
     else:
         printError(output, "Unable to insert document", reply)
          
-    reply = requests.post(url + "/" + cityTableName, data)
+    reply = requests.post(url + "/" + cityTableName, data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " document")
@@ -178,7 +181,7 @@ def doEverything():
      
     output.append("# 2.2 Insert multiple documents to a collection")
     data = json.dumps([seattle.toJSON(), newYork.toJSON(), london.toJSON(), tokyo.toJSON(), madrid.toJSON()])
-    reply = requests.post(url + "/" + collectionName, data)
+    reply = requests.post(url + "/" + collectionName, data, cookies=cookies)
     if reply.status_code == 202:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " documents")
@@ -186,7 +189,7 @@ def doEverything():
         printError(output, "Unable to insert multiple documents", reply)
          
     data = json.dumps([seattle.toJSON(), newYork.toJSON(), london.toJSON(), tokyo.toJSON(), madrid.toJSON()])
-    reply = requests.post(url + "/" + cityTableName, data)
+    reply = requests.post(url + "/" + cityTableName, data, cookies=cookies)
     if reply.status_code == 202:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " documents")
@@ -196,7 +199,7 @@ def doEverything():
     output.append("# 3 Queries")
     output.append("# 3.1 Find a document in a collection that matches a query condition")
     query = json.dumps({"longitude": {"$gt" : 40.0}})
-    reply = requests.get(url + "/" + collectionName + "?query=" + query)
+    reply = requests.get(url + "/" + collectionName + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Query result: " + str(docs[0]))
@@ -205,7 +208,7 @@ def doEverything():
             
     output.append("# 3.2 Find all documents in a collection that match a query condition")
     query = json.dumps({"longitude": {"$gt" : 40.0}})
-    reply = requests.get(url + "/" + collectionName + "?query=" + query)
+    reply = requests.get(url + "/" + collectionName + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Query result: ")
@@ -215,7 +218,7 @@ def doEverything():
         printError(output, "Unable to query documents in collection", reply)
         
     output.append("# 3.3 Find all documents in a collection")
-    reply = requests.get(url+ "/" + collectionName)
+    reply = requests.get(url+ "/" + collectionName, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("query result: ")
@@ -227,7 +230,7 @@ def doEverything():
     output.append("# 3.4 Count documents in a collection")
     cmd = "$cmd"
     query = json.dumps({"count": collectionName, "query": {"longitude": {"$lt" : 40.0}}})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Count query result: " + str(docs[0]))
@@ -236,7 +239,7 @@ def doEverything():
 
     output.append("# 3.5 Order documents in a collection")
     sort = json.dumps({"population": 1})
-    reply = requests.get(url + "/" + collectionName + "?sort=" + sort)
+    reply = requests.get(url + "/" + collectionName + "?sort=" + sort, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Sorted result: ")
@@ -248,7 +251,7 @@ def doEverything():
     output.append("# 3.6 Find distinct values in a collection")
     cmd = "$cmd"
     query = json.dumps({"distinct": collectionName, "key": "countryCode", "query": {"longitude": {"$lt" : 40.0}}})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Distinct values: ")
@@ -264,14 +267,14 @@ def doEverything():
                        {"countryCode" : 81, "countryName" : "Japan"},
                        {"countryCode" : 34, "countryName" : "Spain"},
                        {"countryCode" : 61, "countryName" : "Australia"}])
-    reply = requests.post(url + "/" + codeTableName, data)
+    reply = requests.post(url + "/" + codeTableName, data, cookies=cookies)
     if reply.status_code == 202:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " document")
     else:
         printError(output, "Unable to insert documents", reply)
             
-    reply = requests.post(url + "/" + joinCollectionName, data)
+    reply = requests.post(url + "/" + joinCollectionName, data, cookies=cookies)
     if reply.status_code == 202:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " document")
@@ -282,7 +285,7 @@ def doEverything():
     query = json.dumps({"$collections": {collectionName: {"$project": {"name" : 1, "population" : 1, "longitude": 1, "latitude" : 1}},
                                          joinCollectionName: {"$project": {"countryCode" : 1, "countryName" : 1}}}, 
                         "$condition" : {"pythonRESTGalaxy.countryCode" : "pyRESTJoin.countryCode"}})
-    reply = requests.get(url + "/" + "system.join" + "?query=" + query)
+    reply = requests.get(url + "/" + "system.join" + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Join collection-collection: ")
@@ -295,7 +298,7 @@ def doEverything():
     query = json.dumps({"$collections": {collectionName: {"$project": {"name" : 1, "population" : 1, "longitude": 1, "latitude" : 1}},
                                          codeTableName: {"$project": {"countryCode" : 1, "countryName" : 1}}}, 
                         "$condition" : {"pythonRESTGalaxy.countryCode" : "codeTable.countryCode"}})
-    reply = requests.get(url + "/" + "system.join" + "?query=" + query)
+    reply = requests.get(url + "/" + "system.join" + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Join collection-collection: ")
@@ -308,7 +311,7 @@ def doEverything():
     query = json.dumps({"$collections": {cityTableName: {"$project": {"name" : 1, "population" : 1, "longitude": 1, "latitude" : 1}},
                                          codeTableName: {"$project": {"countryCode" : 1, "countryName" : 1}}}, 
                         "$condition" : {"cityTable.countryCode" : "codeTable.countryCode"}})
-    reply = requests.get(url + "/" + "system.join" + "?query=" + query)
+    reply = requests.get(url + "/" + "system.join" + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Join table-table: ")
@@ -319,7 +322,7 @@ def doEverything():
              
     output.append("#3.8 Batch Size")
     batchSize = 2
-    reply = requests.get(url + "/" + collectionName + "?batchsize=" + str(batchSize))
+    reply = requests.get(url + "/" + collectionName + "?batchsize=" + str(batchSize), cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("New batch size: " + str(batchSize))
@@ -341,7 +344,7 @@ def doEverything():
     output.append("# 4 Update documents in a collection")
     query = json.dumps({'name': seattle.name})
     data = json.dumps({'$set' : {'countryCode' : 999} })
-    reply = requests.put(url + "/" + collectionName + "?query=" + query, data)
+    reply = requests.put(url + "/" + collectionName + "?query=" + query, data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Updated " + str(doc.get('n')) + " documents")
@@ -350,7 +353,7 @@ def doEverything():
            
     output.append("# 5 Delete documents in a collection")
     query = json.dumps({'name': tokyo.name})
-    reply = requests.delete(url + "/" + collectionName + "?query=" + query)
+    reply = requests.delete(url + "/" + collectionName + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Deleted " + str(doc.get('n')) + " documents")
@@ -359,7 +362,7 @@ def doEverything():
             
     output.append("# 6 SQL Passthrough")
     query = json.dumps({'$sql': "create table if not exists town (name varchar(255), countryCode int)"})
-    reply = requests.get(url + "/" + "system.sql"+ "?query=" + query)
+    reply = requests.get(url + "/" + "system.sql"+ "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Created table")
@@ -367,7 +370,7 @@ def doEverything():
         printError(output, "Unable to create table with sql passthrough", reply)
             
     query = json.dumps({"$sql": "insert into town values ('Lawrence', 1)"})
-    reply = requests.get(url + "/" + "system.sql"+ "?query=" + query)
+    reply = requests.get(url + "/" + "system.sql"+ "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Inserted " + str(doc) + " document")
@@ -375,7 +378,7 @@ def doEverything():
         printError(output, "Unable to insert with sql passthrough", reply)
             
     query = json.dumps({'$sql': "drop table town"})
-    reply = requests.get(url + "/" + "system.sql"+ "?query=" + query)
+    reply = requests.get(url + "/" + "system.sql"+ "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Dropped table")
@@ -385,15 +388,15 @@ def doEverything():
     output.append("# 7 Transactions")
     cmd = "$cmd"
     query = json.dumps({"transaction": "enable"})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
-        output.append("Transactions enabled")
+        output.append("Transactions enabled: " + str(docs))
     else:
         printError(output, "Unable to enable transactions", reply)  
        
     data = json.dumps(melbourne.toJSON())
-    reply = requests.post(url + "/" + collectionName, data)
+    reply = requests.post(url + "/" + collectionName, data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " document")
@@ -401,15 +404,15 @@ def doEverything():
         printError(output, "Unable to insert document", reply)
            
     query = json.dumps({"transaction": "commit"})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
-        output.append("Transactions committed")
+        output.append("Transactions committed: " + str(docs))
     else:
         printError(output, "Unable to commit transactions", reply) 
             
     data = json.dumps(sydney.toJSON())
-    reply = requests.post(url + "/" + collectionName, data)
+    reply = requests.post(url + "/" + collectionName, data, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Inserted " + str(doc.get('n')) + " document")
@@ -417,14 +420,14 @@ def doEverything():
         printError(output, "Unable to insert document", reply)
         
     query = json.dumps({"transaction": "rollback"})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
-        output.append("Transactions rolled back")
+        output.append("Transactions rolled back: " + str(docs))
     else:
         printError(output, "Unable to roll back transactions", reply)   
         
-    reply = requests.get(url+ "/" + collectionName)
+    reply = requests.get(url+ "/" + collectionName, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("query result: ")
@@ -434,7 +437,7 @@ def doEverything():
         printError(output, "Unable to query documents in collection", reply)   
             
     query = json.dumps({"transaction": "disable"})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Transactions disabled")
@@ -445,7 +448,7 @@ def doEverything():
     output.append("# 8.1 Relational Tables")
     option = "?options="
     query = json.dumps({"includeRelational": True})
-    reply = requests.get(url + "/" + option + query)
+    reply = requests.get(url + "/" + option + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Catalog " + str(docs))
@@ -455,7 +458,7 @@ def doEverything():
     output.append("# 8.2 Relational Tables + System Tables")
     option = "?options="
     query = json.dumps({"includeRelational": True, "includeSystem" : True})
-    reply = requests.get(url + "/" + option + query)
+    reply = requests.get(url + "/" + option + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Catalog " + str(docs))
@@ -465,7 +468,7 @@ def doEverything():
     output.append("# 9 output")
     output.append("# 9.1 collstats command")
     query = json.dumps({"collstats": collectionName})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Collection stats " + str(docs))
@@ -474,7 +477,7 @@ def doEverything():
           
     output.append("# 9.1 dbstats command")
     query = json.dumps({"dbstats": 1})
-    reply = requests.get(url + "/" + cmd + "?query=" + query)
+    reply = requests.get(url + "/" + cmd + "?query=" + query, cookies=cookies)
     if reply.status_code == 200:
         docs = reply.json()
         output.append("Database stats " + str(docs))
@@ -482,7 +485,7 @@ def doEverything():
         printError(output, "Unable to display database stats", reply)
          
     output.append("# 10 Get a listing of collections")
-    reply = requests.get(url)
+    reply = requests.get(url, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         dbList = ""
@@ -493,28 +496,28 @@ def doEverything():
         printError(output, "Unable to retrieve collection listing", reply)
      
     output.append("# 11 Drop a collection")
-    reply = requests.delete(url + "/" + collectionName)
+    reply = requests.delete(url + "/" + collectionName, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Delete collection result: " + str(doc))
     else:
         printError(output, "Unable to drop collection", reply)
         
-    reply = requests.delete(url + "/" + joinCollectionName)
+    reply = requests.delete(url + "/" + joinCollectionName, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Delete collection result: " + str(doc))
     else:
         printError(output, "Unable to drop collection", reply)
         
-    reply = requests.delete(url + "/" + codeTableName)
+    reply = requests.delete(url + "/" + codeTableName, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Delete collection result: " + str(doc))
     else:
         printError(output, "Unable to drop collection", reply) 
            
-    reply = requests.delete(url + "/" + cityTableName)
+    reply = requests.delete(url + "/" + cityTableName, cookies=cookies)
     if reply.status_code == 200:
         doc = reply.json()
         output.append("Delete collection result: " + str(doc))
